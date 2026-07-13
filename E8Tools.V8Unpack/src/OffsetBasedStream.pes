@@ -1,0 +1,60 @@
+импорт System
+импорт System::IO
+
+@Глобально
+класс ПотокСоСмещением : Stream
+    знч поток: Stream
+    знч смещение: System::Int32
+
+    обз пер CanRead: Булево
+    обз пер CanSeek: Булево
+    обз пер CanWrite: Булево
+    обз пер Length: System::Int64
+    обз пер Position: System::Int64
+
+    @Глобально
+    конструктор(внутреннийПоток: Stream, смещениеПотока: System::Int32)
+        поток = внутреннийПоток
+        смещение = смещениеПотока
+        CanRead = поток.CanRead
+        CanSeek = поток.CanSeek
+        CanWrite = поток.CanWrite
+        Length = System::Convert.ToInt64(System::Convert.ToInt64(поток.Length) - System::Convert.ToInt64(смещение))
+        Position = System::Convert.ToInt64(System::Convert.ToInt64(поток.Position) - System::Convert.ToInt64(смещение))
+    ;
+
+    @Переопределение
+    метод Flush(): ничто
+        поток.Flush()
+    ;
+
+    @Переопределение
+    метод Read(буфер: Байты, offset: System::Int32, count: System::Int32): System::Int32
+        пер n = поток.Read(буфер, offset, count)
+        Position = System::Convert.ToInt64(System::Convert.ToInt64(поток.Position) - System::Convert.ToInt64(смещение))
+        возврат n
+    ;
+
+    @Переопределение
+    метод Seek(запросСмещения: System::Int64, origin: SeekOrigin): System::Int64
+        пер целевой: System::Int64 = запросСмещения
+        если origin == SeekOrigin.Begin
+            целевой = System::Convert.ToInt64(запросСмещения + System::Convert.ToInt64(смещение))
+        ;
+        пер abs: System::Int64 = System::Convert.ToInt64(поток.Seek(целевой, origin))
+        Position = System::Convert.ToInt64(abs - System::Convert.ToInt64(смещение))
+        возврат Position
+    ;
+
+    @Переопределение
+    метод SetLength(value: System::Int64): ничто
+        поток.SetLength(System::Convert.ToInt64(value + System::Convert.ToInt64(смещение)))
+        Length = System::Convert.ToInt64(System::Convert.ToInt64(поток.Length) - System::Convert.ToInt64(смещение))
+    ;
+
+    @Переопределение
+    метод Write(буфер: Байты, offset: System::Int32, count: System::Int32): ничто
+        поток.Write(буфер, offset, count)
+        Position = System::Convert.ToInt64(System::Convert.ToInt64(поток.Position) - System::Convert.ToInt64(смещение))
+    ;
+;

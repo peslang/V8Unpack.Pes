@@ -1,0 +1,103 @@
+импорт System
+импорт System::IO
+
+метод ПоказатьСправку(): ничто
+    System::Console.WriteLine("V8Unpack command params")
+    System::Console.WriteLine("Commands:")
+    System::Console.WriteLine("\t-unpack SRC DSTDIR    - one-level unpack with inflate")
+    System::Console.WriteLine("\t-parse  SRC DSTDIR    - recursive unpack")
+    System::Console.WriteLine("\t-build  SRCDIR DST    - recursive pack")
+    System::Console.WriteLine("\t-listfiles SRC        - list file entries")
+;
+
+метод ЧислоАргументов(): System::Int32
+    пер values = Environment.GetCommandLineArgs()
+    возврат values.Length
+;
+
+метод Аргумент(индекс: System::Int32): Строка
+    пер values = Environment.GetCommandLineArgs()
+    возврат values[индекс]
+;
+
+метод Прогресс(progress: System::Int32): System::Int32
+    пер chars = ["|", "/", "-", "\\", "|", "/", "-", "\\"]
+    System::Console.Write("\b" + chars[progress])
+    возврат (progress + 1) % chars.Count
+;
+
+метод КомандаРазбор(): ничто
+    если ЧислоАргументов() < 3
+        ПоказатьСправку()
+        возврат
+    ;
+    пер filename = Аргумент(2)
+    пер destDir = Аргумент(3)
+    пер cf = Контейнер.ИзФайла(filename)
+    Контейнер.РазобратьРекурсивно(cf, destDir)
+    cf.Освободить()
+    System::Console.WriteLine("\bDone.")
+;
+
+метод КомандаРаспаковать(): ничто
+    если ЧислоАргументов() < 3
+        ПоказатьСправку()
+        возврат
+    ;
+    пер filename = Аргумент(2)
+    пер destDir = Аргумент(3)
+    Directory.CreateDirectory(destDir)
+    пер cf = Контейнер.ИзФайла(filename)
+    пер files = cf.Файлы()
+    для i = 0 по files.Count - 1
+        пер file = files[i]
+        пер dstPath = Path.Combine(destDir, file.Имя)
+        пер fileStream = cf.ОткрытьПоток(file.СмещениеДанных, Истина)
+        Контейнер.ЗаписатьПотокВФайл(fileStream, dstPath)
+    ;
+    cf.Освободить()
+    System::Console.WriteLine("Done.")
+;
+
+метод КомандаСобрать(): ничто
+    если ЧислоАргументов() < 3
+        ПоказатьСправку()
+        возврат
+    ;
+    пер srcDir = Аргумент(2)
+    пер filename = Аргумент(3)
+    Контейнер.СоздатьИзКаталога(srcDir, filename, ТипАдресаКонтейнера.Авто, Ложь)
+    System::Console.WriteLine("Done.")
+;
+
+метод КомандаСписокФайлов(): ничто
+    если ЧислоАргументов() < 2
+        ПоказатьСправку()
+        возврат
+    ;
+    пер filename = Аргумент(2)
+    пер cf = Контейнер.ИзФайла(filename)
+    пер files = cf.Файлы()
+    для i = 0 по files.Count - 1
+        пер entry = files[i]
+        System::Console.WriteLine(entry.Имя)
+    ;
+    cf.Освободить()
+;
+
+если ЧислоАргументов() < 2
+    ПоказатьСправку()
+иначе
+    пер command = Аргумент(1)
+    если String.Equals(command, "-parse", StringComparison.InvariantCultureIgnoreCase)
+        КомандаРазбор()
+    иначе если String.Equals(command, "-unpack", StringComparison.InvariantCultureIgnoreCase)
+        КомандаРаспаковать()
+    иначе если String.Equals(command, "-build", StringComparison.InvariantCultureIgnoreCase)
+        КомандаСобрать()
+    иначе если String.Equals(command, "-listfiles", StringComparison.InvariantCultureIgnoreCase)
+        КомандаСписокФайлов()
+    иначе
+        ПоказатьСправку()
+    ;
+;

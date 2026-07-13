@@ -1,0 +1,31 @@
+импорт System
+импорт System::IO
+импорт System::Reflection
+
+@Глобально
+статический класс Заглушка32
+    @Глобально
+    статический метод ЗаписатьВПоток(поток: Stream): ничто
+        пер данные = ЗагрузитьДанные()
+        поток.Write(данные, 0, данные.Length)
+    ;
+
+    @Локально
+    статический метод ЗагрузитьДанные(): Байты
+        пер asm = Assembly.GetExecutingAssembly()
+        пер dir = Path.GetDirectoryName(asm.Location)
+        если String.IsNullOrEmpty(dir)
+            dir = "."
+        ;
+        пер путь = Path.Combine(dir, "Placeholder32.bytes")
+        если File.Exists(путь)
+            возврат File.ReadAllBytes(путь)
+        ;
+        пер dev = Path.Combine(Path.Combine(Path.Combine(dir, ".."), ".."), "..")
+        пер devPath = Path.Combine(Path.Combine(dev, "src"), "Placeholder32.bytes")
+        если File.Exists(devPath)
+            возврат File.ReadAllBytes(devPath)
+        ;
+        выбросить новый IOException("Не найден Placeholder32.bytes")
+    ;
+;

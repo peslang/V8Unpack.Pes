@@ -1,0 +1,62 @@
+импорт System
+импорт System::IO
+
+@Глобально
+класс ПотокЗаписиБлока : Stream
+    знч поток: Stream
+    знч читатель: ЧитательФормата
+    знч распределитель: РаспределительСтраниц
+    знч начальныйЗаголовок: ЗаголовокБлока
+
+    обз пер CanRead: Булево = Ложь
+    обз пер CanSeek: Булево = Ложь
+    обз пер CanWrite: Булево = Истина
+    обз пер Length: System::Int64 = System::Convert.ToInt64(0)
+    обз пер Position: System::Int64 = System::Convert.ToInt64(0)
+
+    @Глобально
+    конструктор(
+        target: Stream,
+        formatReader: ЧитательФормата,
+        startHeader: ЗаголовокБлока,
+        allocator: РаспределительСтраниц)
+        поток = target
+        читатель = formatReader
+        начальныйЗаголовок = startHeader
+        распределитель = allocator
+        читатель.ЗаписатьЗаголовокБлока(поток, startHeader)
+    ;
+
+    @Глобально
+    метод Закрыть(): ничто
+        начальныйЗаголовок.РазмерДанных = System::Convert.ToUInt64(Position)
+        поток.Seek(0, SeekOrigin.Begin)
+        читатель.ЗаписатьЗаголовокБлока(поток, начальныйЗаголовок)
+    ;
+
+    @Переопределение
+    метод Flush(): ничто
+        поток.Flush()
+    ;
+
+    @Переопределение
+    метод Read(буфер: Байты, offset: System::Int32, count: System::Int32): System::Int32
+        выбросить новый NotSupportedException()
+    ;
+
+    @Переопределение
+    метод Seek(запрос: System::Int64, origin: SeekOrigin): System::Int64
+        выбросить новый NotSupportedException()
+    ;
+
+    @Переопределение
+    метод SetLength(value: System::Int64): ничто
+        выбросить новый NotSupportedException()
+    ;
+
+    @Глобально
+    @Переопределение
+    метод Write(буфер: Байты, offset: System::Int32, count: System::Int32): ничто
+        поток.Write(буфер, offset, count)
+    ;
+;

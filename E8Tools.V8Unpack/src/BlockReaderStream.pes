@@ -1,0 +1,210 @@
+импорт System
+импорт System::IO
+импорт System::IO::Compression
+
+@Глобально
+класс ПотокЧтенияБлока : Stream
+    знч reader: Stream
+    знч formatReader: ЧитательФормата
+    знч dataSize: System::UInt64
+    знч streamStartPosition: System::Int64
+
+    пер currentHeader: ЗаголовокБлока
+    пер currentPageData: Байты
+    пер currentPageOffset: System::Int32
+    пер pagesEnded: Булево
+    пер текущаяПозиция: System::Int64
+    пер isPacked: Булево
+    пер isContainer: Булево
+
+    обз пер CanRead: Булево = Истина
+    обз пер CanSeek: Булево = Ложь
+    обз пер CanWrite: Булево = Ложь
+    обз пер Length: System::Int64
+    обз пер Position: System::Int64
+
+    @Глобально
+    конструктор(basicStream: Stream, читатель: ЧитательФормата)
+        reader = basicStream
+        formatReader = читатель
+        currentHeader = formatReader.ПрочитатьЗаголовокБлока(reader)
+        dataSize = currentHeader.РазмерДанных
+        текущаяПозиция = System::Convert.ToInt64(0)
+        streamStartPosition = System::Convert.ToInt64(basicStream.Position)
+        Length = System::Convert.ToInt64(dataSize)
+        Position = System::Convert.ToInt64(0)
+        ПрочитатьСтраницу()
+        ПроанализироватьСостояние()
+    ;
+
+    @Глобально
+    метод Упакован(): Булево
+        возврат isPacked
+    ;
+
+    @Глобально
+    метод ЭтоКонтейнер(): Булево
+        возврат isContainer
+    ;
+
+    метод Сбросить(): ничто
+        текущаяПозиция = System::Convert.ToInt64(0)
+        reader.Seek(streamStartPosition, SeekOrigin.Begin)
+        ПрочитатьСтраницу()
+    ;
+
+    @Локально
+    метод ПрочитатьСтраницу(): ничто
+        пер currentDataSize = dataSize
+        если currentHeader.РазмерСтраницы < currentDataSize
+            currentDataSize = currentHeader.РазмерСтраницы
+        ;
+        если currentDataSize > 0x7FFFFFFF
+            выбросить новый ОшибкаФормата("ошибка формата")
+        ;
+        пер size = System::Convert.ToInt32(currentDataSize)
+        currentPageData = Байты.Выделить(size)
+        reader.Read(currentPageData, 0, size)
+        currentPageOffset = 0
+    ;
+
+    @Локально
+    метод ПерейтиКСледБлоку(): ничто
+        если currentHeader.АдресСледСтраницы == formatReader.ПодписьV8()
+            currentPageData = Байты{}
+            pagesEnded = Истина
+            возврат
+        ;
+        pagesEnded = Ложь
+        reader.Seek(System::Convert.ToInt64(currentHeader.АдресСледСтраницы), SeekOrigin.Begin)
+        currentHeader = formatReader.ПрочитатьЗаголовокБлока(reader)
+        ПрочитатьСтраницу()
+    ;
+
+    @Локально
+    метод ПроанализироватьСостояние(): ничто
+        пер bufferToCheck = currentPageData
+        isPacked = Ложь
+        попытка
+            пер srcMem = новый MemoryStream(currentPageData)
+            пер decompressor = новый DeflateStream(srcMem, CompressionMode.Decompress)
+            пер destMem = новый MemoryStream(currentPageData.Length * 2)
+            пер buf = Байты.Выделить(4096)
+            пока Истина
+                пер n = decompressor.Read(buf, 0, buf.Length)
+                если n == 0
+                    прервать
+                ;
+                destMem.Write(buf, 0, n)
+            ;
+            isPacked = Истина
+            bufferToCheck = destMem.ToArray()
+        поймать ex: System::IO::InvalidDataException
+            isPacked = Ложь
+        ;
+        пер memoryStream = новый MemoryStream(bufferToCheck)
+        isContainer = КореньКонтейнера.ЭтоКонтейнерДляЧитателя(memoryStream, formatReader)
+    ;
+
+    @Переопределение
+    метод Flush(): ничто
+        выбросить новый NotSupportedException()
+    ;
+
+    @Переопределение
+    метод Read(буфер: Байты, смещениеБуфера: System::Int32, count: System::Int32): System::Int32
+        если pagesEnded
+            возврат 0
+        ;
+        пер bytesRead = 0
+        пер countLeft = count
+        пер pos = смещениеБуфера
+        пока countLeft > 0
+            пер leftInPage = currentPageData.Length - currentPageOffset
+            если leftInPage == 0
+                ПерейтиКСледБлоку()
+                если pagesEnded
+                    прервать
+                ;
+            ;
+            пер readFromCurrentPage = leftInPage
+            если countLeft < readFromCurrentPage
+                readFromCurrentPage = countLeft
+            ;
+            System::Buffer.BlockCopy(
+                currentPageData,
+                currentPageOffset,
+                буфер,
+                pos,
+                readFromCurrentPage)
+            currentPageOffset = currentPageOffset + readFromCurrentPage
+            pos = pos + readFromCurrentPage
+            bytesRead = bytesRead + readFromCurrentPage
+            countLeft = countLeft - readFromCurrentPage
+        ;
+        возврат bytesRead
+    ;
+
+    @Переопределение
+    метод Seek(offset: System::Int64, origin: SeekOrigin): System::Int64
+        выбросить новый NotSupportedException()
+    ;
+
+    @Переопределение
+    метод SetLength(value: System::Int64): ничто
+        выбросить новый NotSupportedException()
+    ;
+
+    @Переопределение
+    метод Write(буфер: Байты, offset: System::Int32, count: System::Int32): ничто
+        выбросить новый NotSupportedException()
+    ;
+
+    @Глобально
+    статический метод ПопытатьсяПрочитатьБлокДанных(поток: Stream, читатель: ЧитательФормата): РезультатБлокаДанных
+        пер начало = поток.Position
+        пер заголовокРез: РезультатЗаголовкаБлока
+        если читатель.ЭтоБит64()
+            заголовокРез = ЗаголовокБлокаIO.ПопытатьсяПрочитать64(поток)
+        иначе
+            заголовокРез = ЗаголовокБлокаIO.ПопытатьсяПрочитать32(поток)
+        ;
+        если не заголовокРез.Успех
+            поток.Seek(начало, SeekOrigin.Begin)
+            возврат новый РезультатБлокаДанных(Ложь, Байты{})
+        ;
+        поток.Seek(начало, SeekOrigin.Begin)
+        пер данные = ПрочитатьБлокДанных(поток, читатель)
+        возврат новый РезультатБлокаДанных(Истина, данные)
+    ;
+
+    @Глобально
+    статический метод ПрочитатьБлокДанных(поток: Stream, читатель: ЧитательФормата): Байты
+        пер blockReader = новый ПотокЧтенияБлока(поток, читатель)
+        пер size = blockReader.Length
+        если size > 0x7FFFFFFF
+            выбросить новый ОшибкаФормата("ошибка формата")
+        ;
+        пер sizeInt = System::Convert.ToInt32(size)
+        пер buf = Байты.Выделить(sizeInt)
+        если sizeInt > 0
+            пер read = blockReader.Read(buf, 0, sizeInt)
+            если read != sizeInt
+                выбросить новый ОшибкаФормата("ошибка формата")
+            ;
+        ;
+        возврат buf
+    ;
+;
+
+@Глобально
+класс РезультатБлокаДанных
+    @Глобально обз пер Успех: Булево
+    @Глобально обз пер Данные: Байты
+
+    @Глобально
+    конструктор(успех: Булево, данные: Байты)
+        Успех = успех
+        Данные = данные
+    ;
+;
