@@ -25,9 +25,6 @@
 
     @Глобально
     конструктор(basicStream: Stream, читатель: ЧитательФормата)
-        CanRead = Истина
-        CanSeek = Ложь
-        CanWrite = Ложь
         reader = basicStream
         formatReader = читатель
         currentHeader = formatReader.ПрочитатьЗаголовокБлока(reader)
@@ -106,7 +103,8 @@
             isPacked = Ложь
         ;
         пер memoryStream = новый MemoryStream(bufferToCheck)
-        isContainer = КореньКонтейнера.ЭтоКонтейнерДляЧитателя(memoryStream, formatReader)
+        // как C# Container.IsContainer → FindRoot: авто 64→32, не formatReader родителя
+        isContainer = КореньКонтейнера.НайтиКорень(memoryStream).Успех
     ;
 
     @Переопределение

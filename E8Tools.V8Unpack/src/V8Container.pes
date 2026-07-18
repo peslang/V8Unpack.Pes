@@ -322,8 +322,7 @@
         пер containerStream = новый FileStream(файлНазначение, FileMode.Create, FileAccess.Write)
         пер container = новый Контейнер(containerStream, formatReader)
         пер каталоги = Directory.GetDirectories(каталогИсточник)
-        пер i: Int32 = 0
-        пока i < каталоги.Length
+        для i = 0 по каталоги.Length - 1
             пер dir = каталоги[i]
             пер dirInfo = новый DirectoryInfo(dir)
             пер tempFilename = Path.GetTempFileName()
@@ -332,17 +331,14 @@
             container.ДобавитьФайл(dirInfo.Name, nestedStream, упаковыватьФайлы)
             nestedStream.Dispose()
             File.Delete(tempFilename)
-            i = i + 1
         ;
         пер файлы = Directory.GetFiles(каталогИсточник)
-        пер j: Int32 = 0
-        пока j < файлы.Length
+        для j = 0 по файлы.Length - 1
             пер file = файлы[j]
             пер fileInfo = новый FileInfo(file)
             пер fileStream = новый FileStream(file, FileMode.Open, FileAccess.Read)
             container.ДобавитьФайл(fileInfo.Name, fileStream, упаковыватьФайлы)
             fileStream.Dispose()
-            j = j + 1
         ;
         container.Закрыть()
         container.Освободить()

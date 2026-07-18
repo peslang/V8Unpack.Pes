@@ -136,14 +136,11 @@
         пер прочитано = поток.Read(буфер, 0, буфер.Length)
         пер enc = Encoding.Unicode
         пер len = прочитано
-        // цикл «для» с Int32-границей даёт InvalidProgram (Decimal ≤ Int32 в IL) — только «пока»
-        пер i: Int32 = 0
-        пока i <= прочитано - 2
+        для i = 0 по прочитано - 2 шаг 2
             если буфер[i] == 0 и буфер[i + 1] == 0
                 len = i
                 прервать
             ;
-            i = i + 2
         ;
         пер имя = enc.GetString(буфер, 0, len)
         возврат новый ДанныеЗаголовкаЭлемента(имя, датаСоздания, датаИзменения, версия)
@@ -162,11 +159,9 @@
             выбросить новый ОшибкаФормата("ошибка формата")
         ;
         пер result: UInt64 = 0
-        пер i: Int32 = 0
-        пока i < hexDigits
+        для i = 0 по hexDigits - 1
             пер digit = Convert.ToUInt64(Утилиты.ЦифраИзHex(буфер[i]))
             result = result * 16 + digit
-            i = i + 1
         ;
         возврат result
     ;
@@ -175,9 +170,7 @@
     статический метод ЗаписатьUIntКакHex(поток: Stream, value: UInt64, hexDigits: Int32): ничто
         пер буфер = Байты.Выделить(hexDigits)
         пер v: UInt64 = value
-        пер i: Int32 = hexDigits
-        пока i > 0
-            i = i - 1
+        для i = hexDigits - 1 вниз по 0
             пер digit = Convert.ToInt32(v % 16)
             буфер[i] = Утилиты.ВHexЦифру(digit)
             v = v / 16

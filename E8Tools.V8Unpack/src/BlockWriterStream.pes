@@ -35,9 +35,6 @@
         распределитель = allocator
         позицияПервогоБлока = поток.Position
         позицияТекущегоБлока = поток.Position
-        CanRead = Ложь
-        CanSeek = Ложь
-        CanWrite = Истина
         Length = 0
         Position = 0
         читатель.ЗаписатьЗаголовокБлока(поток, startHeader)
