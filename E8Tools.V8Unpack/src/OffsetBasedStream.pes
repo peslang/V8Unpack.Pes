@@ -4,23 +4,23 @@
 @Глобально
 класс ПотокСоСмещением : Stream
     знч поток: Stream
-    знч смещение: System::Int32
+    знч смещение: Int64
 
     обз пер CanRead: Булево
     обз пер CanSeek: Булево
     обз пер CanWrite: Булево
-    обз пер Length: System::Int64
-    обз пер Position: System::Int64
+    обз пер Length: Int64
+    обз пер Position: Int64
 
     @Глобально
-    конструктор(внутреннийПоток: Stream, смещениеПотока: System::Int32)
+    конструктор(внутреннийПоток: Stream, смещениеПотока: Int32)
         поток = внутреннийПоток
         смещение = смещениеПотока
         CanRead = поток.CanRead
         CanSeek = поток.CanSeek
         CanWrite = поток.CanWrite
-        Length = System::Convert.ToInt64(System::Convert.ToInt64(поток.Length) - System::Convert.ToInt64(смещение))
-        Position = System::Convert.ToInt64(System::Convert.ToInt64(поток.Position) - System::Convert.ToInt64(смещение))
+        Length = поток.Length - смещение
+        Position = поток.Position - смещение
     ;
 
     @Переопределение
@@ -29,32 +29,37 @@
     ;
 
     @Переопределение
-    метод Read(буфер: Байты, offset: System::Int32, count: System::Int32): System::Int32
+    метод Read(буфер: Байты, offset: Int32, count: Int32): Int32
         пер n = поток.Read(буфер, offset, count)
-        Position = System::Convert.ToInt64(System::Convert.ToInt64(поток.Position) - System::Convert.ToInt64(смещение))
+        Position = поток.Position - смещение
         возврат n
     ;
 
     @Переопределение
-    метод Seek(запросСмещения: System::Int64, origin: SeekOrigin): System::Int64
-        пер целевой: System::Int64 = запросСмещения
+    метод Seek(запросСмещения: Int64, origin: SeekOrigin): Int64
+        пер целевой: Int64 = запросСмещения
         если origin == SeekOrigin.Begin
-            целевой = System::Convert.ToInt64(запросСмещения + System::Convert.ToInt64(смещение))
+            целевой = запросСмещения + смещение
         ;
-        пер abs: System::Int64 = System::Convert.ToInt64(поток.Seek(целевой, origin))
-        Position = System::Convert.ToInt64(abs - System::Convert.ToInt64(смещение))
+        пер abs = поток.Seek(целевой, origin)
+        Position = abs - смещение
         возврат Position
     ;
 
     @Переопределение
-    метод SetLength(value: System::Int64): ничто
-        поток.SetLength(System::Convert.ToInt64(value + System::Convert.ToInt64(смещение)))
-        Length = System::Convert.ToInt64(System::Convert.ToInt64(поток.Length) - System::Convert.ToInt64(смещение))
+    метод SetLength(value: Int64): ничто
+        поток.SetLength(value + смещение)
+        Length = поток.Length - смещение
     ;
 
     @Переопределение
-    метод Write(буфер: Байты, offset: System::Int32, count: System::Int32): ничто
+    метод Write(буфер: Байты, offset: Int32, count: Int32): ничто
         поток.Write(буфер, offset, count)
-        Position = System::Convert.ToInt64(System::Convert.ToInt64(поток.Position) - System::Convert.ToInt64(смещение))
+        Position = поток.Position - смещение
+    ;
+
+    @Переопределение
+    метод Close(): ничто
+        поток.Close()
     ;
 ;

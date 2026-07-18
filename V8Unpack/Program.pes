@@ -2,27 +2,27 @@
 импорт System::IO
 
 метод ПоказатьСправку(): ничто
-    System::Console.WriteLine("V8Unpack command params")
-    System::Console.WriteLine("Commands:")
-    System::Console.WriteLine("\t-unpack SRC DSTDIR    - one-level unpack with inflate")
-    System::Console.WriteLine("\t-parse  SRC DSTDIR    - recursive unpack")
-    System::Console.WriteLine("\t-build  SRCDIR DST    - recursive pack")
-    System::Console.WriteLine("\t-listfiles SRC        - list file entries")
+    Console.WriteLine("V8Unpack command params")
+    Console.WriteLine("Commands:")
+    Console.WriteLine("\t-unpack SRC DSTDIR    - one-level unpack with inflate")
+    Console.WriteLine("\t-parse  SRC DSTDIR    - recursive unpack")
+    Console.WriteLine("\t-build  SRCDIR DST    - recursive pack")
+    Console.WriteLine("\t-listfiles SRC        - list file entries")
 ;
 
-метод ЧислоАргументов(): System::Int32
+метод ЧислоАргументов(): Int32
     пер values = Environment.GetCommandLineArgs()
     возврат values.Length
 ;
 
-метод Аргумент(индекс: System::Int32): Строка
+метод Аргумент(индекс: Int32): Строка
     пер values = Environment.GetCommandLineArgs()
     возврат values[индекс]
 ;
 
-метод Прогресс(progress: System::Int32): System::Int32
+метод Прогресс(progress: Int32): Int32
     пер chars = ["|", "/", "-", "\\", "|", "/", "-", "\\"]
-    System::Console.Write("\b" + chars[progress])
+    Console.Write("\b" + chars[progress])
     возврат (progress + 1) % chars.Count
 ;
 
@@ -36,7 +36,7 @@
     пер cf = Контейнер.ИзФайла(filename)
     Контейнер.РазобратьРекурсивно(cf, destDir)
     cf.Освободить()
-    System::Console.WriteLine("\bDone.")
+    Console.WriteLine("\bDone.")
 ;
 
 метод КомандаРаспаковать(): ничто
@@ -49,14 +49,16 @@
     Directory.CreateDirectory(destDir)
     пер cf = Контейнер.ИзФайла(filename)
     пер files = cf.Файлы()
-    для i = 0 по files.Count - 1
+    пер i: Int32 = 0
+    пока i < files.Count
         пер file = files[i]
         пер dstPath = Path.Combine(destDir, file.Имя)
         пер fileStream = cf.ОткрытьПоток(file.СмещениеДанных, Истина)
         Контейнер.ЗаписатьПотокВФайл(fileStream, dstPath)
+        i = i + 1
     ;
     cf.Освободить()
-    System::Console.WriteLine("Done.")
+    Console.WriteLine("Done.")
 ;
 
 метод КомандаСобрать(): ничто
@@ -66,8 +68,16 @@
     ;
     пер srcDir = Аргумент(2)
     пер filename = Аргумент(3)
-    Контейнер.СоздатьИзКаталога(srcDir, filename, ТипАдресаКонтейнера.Авто, Ложь)
-    System::Console.WriteLine("Done.")
+    Контейнер.СоздатьИзКаталога(srcDir, filename, ТипАдресаКонтейнера.Авто, Истина)
+    Console.WriteLine("Done.")
+;
+
+метод ФорматДатыСписка(дата: ДатаВремя): Строка
+    возврат String.Format("{0:dd.MM.yyyy}", дата.Date)
+;
+
+метод ФорматВремениСписка(дата: ДатаВремя): Строка
+    возврат String.Format("{0,8}", дата.TimeOfDay)
 ;
 
 метод КомандаСписокФайлов(): ничто
@@ -78,9 +88,25 @@
     пер filename = Аргумент(2)
     пер cf = Контейнер.ИзФайла(filename)
     пер files = cf.Файлы()
-    для i = 0 по files.Count - 1
+    пер i: Int32 = 0
+    пока i < files.Count
         пер entry = files[i]
-        System::Console.WriteLine(entry.Имя)
+        пер fileSize: Int64 = 0
+        пер packedSign = "-"
+        пер dirSign = "-"
+        пер blockReader = cf.ОткрытьЧитательБлока(entry.СмещениеДанных)
+        fileSize = blockReader.Length
+        если blockReader.ЭтоКонтейнер()
+            dirSign = "d"
+        ;
+        если blockReader.Упакован()
+            packedSign = "z"
+        ;
+        пер namePresentation = entry.Имя.PadRight(40)
+        пер sizePresentation = String.Format("{0,10}", fileSize)
+        Console.WriteLine(
+            dirSign + " " + ФорматДатыСписка(entry.ДатаИзменения) + " " + ФорматВремениСписка(entry.ДатаИзменения) + "    " + namePresentation + "   " + sizePresentation + " " + packedSign + " ")
+        i = i + 1
     ;
     cf.Освободить()
 ;

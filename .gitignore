@@ -5,7 +5,6 @@
 
 # IDE
 **/.vs/
-**/.vscode/
 *.user
 *.suo
 

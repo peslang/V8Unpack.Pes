@@ -67,7 +67,7 @@
         таблицаАдресов.Seek(0, SeekOrigin.Begin)
         пока таблицаАдресов.Position < таблицаАдресов.Length
             пер entry = читатель.ПрочитатьАдресЭлемента(таблицаАдресов)
-            поток.Seek(System::Convert.ToInt64(entry.АдресЗаголовка), SeekOrigin.Begin)
+            поток.Seek(Convert.ToInt64(entry.АдресЗаголовка), SeekOrigin.Begin)
             пер blockReader = новый ПотокЧтенияБлока(поток, читатель)
             пер elementHeader = Утилиты.ПрочитатьDtoЗаголовкаЭлемента(blockReader)
             результат.Add(новый ФайлКонтейнера(
@@ -96,10 +96,10 @@
 
     @Глобально
     метод ОткрытьПоток(
-        смещениеДанных: System::UInt64,
+        смещениеДанных: UInt64,
         принудительнаяРаспаковка: Булево): Stream
         если смещениеДанных != 0 и смещениеДанных != читатель.ПодписьV8()
-            поток.Seek(System::Convert.ToInt64(смещениеДанных), SeekOrigin.Begin)
+            поток.Seek(Convert.ToInt64(смещениеДанных), SeekOrigin.Begin)
             пер blockReader = новый ПотокЧтенияБлока(поток, читатель)
             если blockReader.Упакован() и принудительнаяРаспаковка
                 пер packed = Контейнер.СкопироватьВПамять(blockReader)
@@ -111,8 +111,8 @@
     ;
 
     @Глобально
-    метод ОткрытьЧитательБлока(смещениеДанных: System::UInt64): ПотокЧтенияБлока
-        поток.Seek(System::Convert.ToInt64(смещениеДанных), SeekOrigin.Begin)
+    метод ОткрытьЧитательБлока(смещениеДанных: UInt64): ПотокЧтенияБлока
+        поток.Seek(Convert.ToInt64(смещениеДанных), SeekOrigin.Begin)
         возврат новый ПотокЧтенияБлока(поток, читатель)
     ;
 
@@ -132,7 +132,7 @@
         читатель.ЗаписатьЗаголовокКонтейнера(поток, заголовок)
         пер page = новый ЗаголовокБлока(
             0,
-            System::Convert.ToUInt64(заголовок.РазмерСтраницы),
+            Convert.ToUInt64(заголовок.РазмерСтраницы),
             читатель.ПодписьV8())
         пер blockWriter = новый ПотокЗаписиБлока(поток, читатель, page, распределитель)
         таблицаАдресов.Seek(0, SeekOrigin.Begin)
@@ -147,18 +147,18 @@
 
     @Глобально
     метод ЗарезервироватьСтраницу(): ничто
-        пер page = распределитель.СледующаяСтраница(System::Convert.ToUInt64(читатель.РазмерСтраницыПоУмолчанию()))
+        пер page = распределитель.СледующаяСтраница(Convert.ToUInt64(читатель.РазмерСтраницыПоУмолчанию()))
         пер blockWriter = новый ПотокЗаписиБлока(поток, читатель, page, распределитель)
         blockWriter.Закрыть()
     ;
 
     @Глобально
-    метод ЗаписатьСодержимоеФайла(данные: Stream, упаковать: Булево): System::UInt64
+    метод ЗаписатьСодержимоеФайла(данные: Stream, упаковать: Булево): UInt64
         пер page = распределитель.СледующаяСтраница()
-        пер dataPosition = System::Convert.ToUInt64(поток.Position)
+        пер dataPosition = Convert.ToUInt64(поток.Position)
         пер blockWriter = новый ПотокЗаписиБлока(поток, читатель, page, распределитель)
         если упаковать
-            пер deflator = новый DeflateStream(blockWriter, CompressionLevel.Fastest)
+            пер deflator = новый DeflateStream(blockWriter, CompressionLevel.Fastest, Истина)
             пер buf = Байты.Выделить(4096)
             пока Истина
                 пер n = данные.Read(buf, 0, buf.Length)
@@ -186,8 +186,8 @@
     метод ДобавитьФайл(имя: Строка, данные: Stream, упаковать: Булево): ФайлКонтейнера
         пер dataPosition = ЗаписатьСодержимоеФайла(данные, упаковать)
         пер elementHeader = новый ДанныеЗаголовкаЭлемента(имя)
-        пер headerPage = распределитель.СледующаяСтраница(System::Convert.ToUInt64(заголовок.РазмерСтраницы))
-        пер headerPosition = System::Convert.ToUInt64(поток.Position)
+        пер headerPage = распределитель.СледующаяСтраница(Convert.ToUInt64(заголовок.РазмерСтраницы))
+        пер headerPosition = Convert.ToUInt64(поток.Position)
         пер blockWriter = новый ПотокЗаписиБлока(поток, читатель, headerPage, распределитель)
         Утилиты.ЗаписатьЗаголовокЭлемента(blockWriter, elementHeader)
         blockWriter.Закрыть()
@@ -250,19 +250,16 @@
 
     @Глобально
     статический метод ЭтоКонтейнер(поток: Stream): Булево
-        пер результат64 = ПопытатьсяПрочитать(поток, новый ЧитательФормата(Истина))
-        если результат64.Успех
+        если ПопытатьсяПрочитать(поток, новый ЧитательФормата(Истина)).Успех
             возврат Истина
         ;
         поток.Seek(0, SeekOrigin.Begin)
-        пер результат32 = ПопытатьсяПрочитать(поток, новый ЧитательФормата(Ложь))
-        возврат результат32.Успех
+        возврат ПопытатьсяПрочитать(поток, новый ЧитательФормата(Ложь)).Успех
     ;
 
     @Глобально
     статический метод ЭтоКонтейнерДляЧитателя(источник: Stream, читатель: ЧитательФормата): Булево
-        пер результат = ПопытатьсяПрочитать(источник, читатель)
-        возврат результат.Успех
+        возврат ПопытатьсяПрочитать(источник, читатель).Успех
     ;
 
     @Глобально
@@ -325,7 +322,8 @@
         пер containerStream = новый FileStream(файлНазначение, FileMode.Create, FileAccess.Write)
         пер container = новый Контейнер(containerStream, formatReader)
         пер каталоги = Directory.GetDirectories(каталогИсточник)
-        для i = 0 по каталоги.Length - 1
+        пер i: Int32 = 0
+        пока i < каталоги.Length
             пер dir = каталоги[i]
             пер dirInfo = новый DirectoryInfo(dir)
             пер tempFilename = Path.GetTempFileName()
@@ -334,14 +332,17 @@
             container.ДобавитьФайл(dirInfo.Name, nestedStream, упаковыватьФайлы)
             nestedStream.Dispose()
             File.Delete(tempFilename)
+            i = i + 1
         ;
         пер файлы = Directory.GetFiles(каталогИсточник)
-        для j = 0 по файлы.Length - 1
+        пер j: Int32 = 0
+        пока j < файлы.Length
             пер file = файлы[j]
             пер fileInfo = новый FileInfo(file)
             пер fileStream = новый FileStream(file, FileMode.Open, FileAccess.Read)
             container.ДобавитьФайл(fileInfo.Name, fileStream, упаковыватьФайлы)
             fileStream.Dispose()
+            j = j + 1
         ;
         container.Закрыть()
         container.Освободить()
@@ -363,7 +364,7 @@
         таблицаАдресов.Seek(0, SeekOrigin.Begin)
         пока таблицаАдресов.Position < таблицаАдресов.Length
             пер entry = читатель.ПрочитатьАдресЭлемента(таблицаАдресов)
-            поток.Seek(System::Convert.ToInt64(entry.АдресЗаголовка), SeekOrigin.Begin)
+            поток.Seek(Convert.ToInt64(entry.АдресЗаголовка), SeekOrigin.Begin)
             пер headerData = ПотокЧтенияБлока.ПрочитатьБлокДанных(поток, читатель)
             пер headerMs = новый MemoryStream(headerData)
             пер elementHeader = Утилиты.ПрочитатьDtoЗаголовкаЭлемента(headerMs)

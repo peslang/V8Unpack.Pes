@@ -6,33 +6,36 @@
 класс ПотокЧтенияБлока : Stream
     знч reader: Stream
     знч formatReader: ЧитательФормата
-    знч dataSize: System::UInt64
-    знч streamStartPosition: System::Int64
+    знч dataSize: UInt64
+    знч streamStartPosition: Int64
 
     пер currentHeader: ЗаголовокБлока
     пер currentPageData: Байты
-    пер currentPageOffset: System::Int32
+    пер currentPageOffset: Int32
     пер pagesEnded: Булево
-    пер текущаяПозиция: System::Int64
+    пер текущаяПозиция: Int64
     пер isPacked: Булево
     пер isContainer: Булево
 
     обз пер CanRead: Булево = Истина
     обз пер CanSeek: Булево = Ложь
     обз пер CanWrite: Булево = Ложь
-    обз пер Length: System::Int64
-    обз пер Position: System::Int64
+    обз пер Length: Int64
+    обз пер Position: Int64
 
     @Глобально
     конструктор(basicStream: Stream, читатель: ЧитательФормата)
+        CanRead = Истина
+        CanSeek = Ложь
+        CanWrite = Ложь
         reader = basicStream
         formatReader = читатель
         currentHeader = formatReader.ПрочитатьЗаголовокБлока(reader)
         dataSize = currentHeader.РазмерДанных
-        текущаяПозиция = System::Convert.ToInt64(0)
-        streamStartPosition = System::Convert.ToInt64(basicStream.Position)
-        Length = System::Convert.ToInt64(dataSize)
-        Position = System::Convert.ToInt64(0)
+        текущаяПозиция = 0
+        streamStartPosition = basicStream.Position
+        Length = Convert.ToInt64(dataSize)
+        Position = 0
         ПрочитатьСтраницу()
         ПроанализироватьСостояние()
     ;
@@ -48,7 +51,7 @@
     ;
 
     метод Сбросить(): ничто
-        текущаяПозиция = System::Convert.ToInt64(0)
+        текущаяПозиция = 0
         reader.Seek(streamStartPosition, SeekOrigin.Begin)
         ПрочитатьСтраницу()
     ;
@@ -62,7 +65,7 @@
         если currentDataSize > 0x7FFFFFFF
             выбросить новый ОшибкаФормата("ошибка формата")
         ;
-        пер size = System::Convert.ToInt32(currentDataSize)
+        пер size = Convert.ToInt32(currentDataSize)
         currentPageData = Байты.Выделить(size)
         reader.Read(currentPageData, 0, size)
         currentPageOffset = 0
@@ -76,7 +79,7 @@
             возврат
         ;
         pagesEnded = Ложь
-        reader.Seek(System::Convert.ToInt64(currentHeader.АдресСледСтраницы), SeekOrigin.Begin)
+        reader.Seek(Convert.ToInt64(currentHeader.АдресСледСтраницы), SeekOrigin.Begin)
         currentHeader = formatReader.ПрочитатьЗаголовокБлока(reader)
         ПрочитатьСтраницу()
     ;
@@ -99,7 +102,7 @@
             ;
             isPacked = Истина
             bufferToCheck = destMem.ToArray()
-        поймать ex: System::IO::InvalidDataException
+        поймать ex: InvalidDataException
             isPacked = Ложь
         ;
         пер memoryStream = новый MemoryStream(bufferToCheck)
@@ -112,7 +115,7 @@
     ;
 
     @Переопределение
-    метод Read(буфер: Байты, смещениеБуфера: System::Int32, count: System::Int32): System::Int32
+    метод Read(буфер: Байты, смещениеБуфера: Int32, count: Int32): Int32
         если pagesEnded
             возврат 0
         ;
@@ -131,7 +134,7 @@
             если countLeft < readFromCurrentPage
                 readFromCurrentPage = countLeft
             ;
-            System::Buffer.BlockCopy(
+            Buffer.BlockCopy(
                 currentPageData,
                 currentPageOffset,
                 буфер,
@@ -146,17 +149,17 @@
     ;
 
     @Переопределение
-    метод Seek(offset: System::Int64, origin: SeekOrigin): System::Int64
+    метод Seek(offset: Int64, origin: SeekOrigin): Int64
         выбросить новый NotSupportedException()
     ;
 
     @Переопределение
-    метод SetLength(value: System::Int64): ничто
+    метод SetLength(value: Int64): ничто
         выбросить новый NotSupportedException()
     ;
 
     @Переопределение
-    метод Write(буфер: Байты, offset: System::Int32, count: System::Int32): ничто
+    метод Write(буфер: Байты, offset: Int32, count: Int32): ничто
         выбросить новый NotSupportedException()
     ;
 
@@ -185,7 +188,7 @@
         если size > 0x7FFFFFFF
             выбросить новый ОшибкаФормата("ошибка формата")
         ;
-        пер sizeInt = System::Convert.ToInt32(size)
+        пер sizeInt = Convert.ToInt32(size)
         пер buf = Байты.Выделить(sizeInt)
         если sizeInt > 0
             пер read = blockReader.Read(buf, 0, sizeInt)

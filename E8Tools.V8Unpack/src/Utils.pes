@@ -6,20 +6,39 @@
 статический класс Утилиты
 
     @Глобально
-    статический метод ИзДатыФайла(сериализованная: System::UInt64): ДатаВремя
-        пер тики = System::Convert.ToInt64(сериализованная) * 1000
-        возврат новый ДатаВремя(тики)
+    статический метод ИзДатыФайла(сериализованная: UInt64): ДатаВремя
+        пер тики = Convert.ToInt64(сериализованная) * 1000
+        попытка
+            возврат новый ДатаВремя(тики)
+        поймать ex: ArgumentOutOfRangeException
+            возврат новый ДатаВремя(0)
+        ;
     ;
 
     @Глобально
-    статический метод ВДатуФайла(дата: ДатаВремя): System::UInt64
-        возврат System::Convert.ToUInt64(дата.Ticks / 1000)
+    статический метод ВДатуФайла(дата: ДатаВремя): UInt64
+        возврат Convert.ToUInt64(дата.Ticks / 1000)
+    ;
+
+    @Глобально
+    статический метод ЗаписатьЗаголовокЭлемента(поток: Stream, данные: ДанныеЗаголовкаЭлемента): ничто
+        пер writer = новый BinaryWriter(поток)
+        writer.Write(Утилиты.ВДатуФайла(данные.ДатаСоздания))
+        writer.Write(Утилиты.ВДатуФайла(данные.ДатаИзменения))
+        writer.Write(данные.Версия)
+        пер enc = Encoding.Unicode
+        пер имяБайты = enc.GetBytes(данные.Имя)
+        поток.Write(имяБайты, 0, имяБайты.Length)
+        поток.WriteByte(0)
+        поток.WriteByte(0)
+        поток.WriteByte(0)
+        поток.WriteByte(0)
     ;
 
     @Глобально
     статический метод ПрочитатьЗаголовокКонтейнера32(поток: Stream): ЗаголовокКонтейнера
         пер reader = новый BinaryReader(поток)
-        пер свободная = System::Convert.ToUInt64(reader.ReadUInt32())
+        пер свободная = Convert.ToUInt64(reader.ReadUInt32())
         пер размерСтраницы = reader.ReadUInt32()
         пер версия = reader.ReadUInt32()
         пер зарезервировано = reader.ReadUInt32()
@@ -29,7 +48,7 @@
     @Глобально
     статический метод ЗаписатьЗаголовокКонтейнера32(поток: Stream, заголовок: ЗаголовокКонтейнера): ничто
         пер writer = новый BinaryWriter(поток)
-        writer.Write(System::Convert.ToUInt32(заголовок.СвободнаяСтраница))
+        writer.Write(Convert.ToUInt32(заголовок.СвободнаяСтраница))
         writer.Write(заголовок.РазмерСтраницы)
         writer.Write(заголовок.ВерсияХранилища)
         writer.Write(заголовок.Зарезервировано)
@@ -57,9 +76,9 @@
     @Глобально
     статический метод ПрочитатьАдресЭлемента32(поток: Stream): АдресЭлемента
         пер reader = новый BinaryReader(поток)
-        пер заголовок = System::Convert.ToUInt64(reader.ReadUInt32())
-        пер данные = System::Convert.ToUInt64(reader.ReadUInt32())
-        пер подпись = System::Convert.ToUInt64(reader.ReadUInt32())
+        пер заголовок = Convert.ToUInt64(reader.ReadUInt32())
+        пер данные = Convert.ToUInt64(reader.ReadUInt32())
+        пер подпись = Convert.ToUInt64(reader.ReadUInt32())
         возврат новый АдресЭлемента(заголовок, данные, подпись)
     ;
 
@@ -75,10 +94,10 @@
     ;
 
     @Глобально
-    статический метод ЗаписатьАдресЭлемента32(поток: Stream, адрес: АдресЭлемента, подпись: System::UInt32): ничто
+    статический метод ЗаписатьАдресЭлемента32(поток: Stream, адрес: АдресЭлемента, подпись: UInt32): ничто
         пер writer = новый BinaryWriter(поток)
-        writer.Write(System::Convert.ToUInt32(адрес.АдресЗаголовка))
-        writer.Write(System::Convert.ToUInt32(адрес.АдресДанных))
+        writer.Write(Convert.ToUInt32(адрес.АдресЗаголовка))
+        writer.Write(Convert.ToUInt32(адрес.АдресДанных))
         writer.Write(подпись)
     ;
 
@@ -100,7 +119,7 @@
     ;
 
     @Глобально
-    статический метод ЗаписатьАдресЭлемента64(поток: Stream, адрес: АдресЭлемента, подпись: System::UInt64): ничто
+    статический метод ЗаписатьАдресЭлемента64(поток: Stream, адрес: АдресЭлемента, подпись: UInt64): ничто
         пер writer = новый BinaryWriter(поток)
         writer.Write(адрес.АдресЗаголовка)
         writer.Write(адрес.АдресДанных)
@@ -109,69 +128,59 @@
 
     @Глобально
     статический метод ПрочитатьDtoЗаголовкаЭлемента(поток: Stream): ДанныеЗаголовкаЭлемента
-        пер buf8 = Байты.Выделить(8)
-        поток.Read(buf8, 0, 8)
-        поток.Read(buf8, 0, 8)
-        пер buf4 = Байты.Выделить(4)
-        поток.Read(buf4, 0, 4)
+        пер reader = новый BinaryReader(поток)
+        пер датаСоздания = Утилиты.ИзДатыФайла(reader.ReadUInt64())
+        пер датаИзменения = Утилиты.ИзДатыФайла(reader.ReadUInt64())
+        пер версия = reader.ReadUInt32()
         пер буфер = Байты.Выделить(4096)
         пер прочитано = поток.Read(буфер, 0, буфер.Length)
-        пер enc = System::Text::Encoding.Unicode
+        пер enc = Encoding.Unicode
         пер len = прочитано
-        для i = 0 по прочитано - 2 шаг 2
+        // цикл «для» с Int32-границей даёт InvalidProgram (Decimal ≤ Int32 в IL) — только «пока»
+        пер i: Int32 = 0
+        пока i <= прочитано - 2
             если буфер[i] == 0 и буфер[i + 1] == 0
                 len = i
                 прервать
             ;
+            i = i + 2
         ;
         пер имя = enc.GetString(буфер, 0, len)
-        возврат новый ДанныеЗаголовкаЭлемента(имя)
+        возврат новый ДанныеЗаголовкаЭлемента(имя, датаСоздания, датаИзменения, версия)
     ;
 
     @Глобально
-    статический метод ЗаписатьЗаголовокЭлемента(поток: Stream, данные: ДанныеЗаголовкаЭлемента): ничто
-        пер writer = новый BinaryWriter(поток)
-        writer.Write(Утилиты.ВДатуФайла(данные.ДатаСоздания))
-        writer.Write(Утилиты.ВДатуФайла(данные.ДатаИзменения))
-        writer.Write(данные.Версия)
-        пер enc = System::Text::Encoding.Unicode
-        пер имяБайты = enc.GetBytes(данные.Имя)
-        поток.Write(имяБайты, 0, имяБайты.Length)
-        поток.WriteByte(0)
-        поток.WriteByte(0)
-        поток.WriteByte(0)
-        поток.WriteByte(0)
-    ;
-
-    @Глобально
-    статический метод ПрочитатьОжидаемыйБайт(поток: Stream, символ: System::Byte): Булево
+    статический метод ПрочитатьОжидаемыйБайт(поток: Stream, символ: Byte): Булево
         возврат поток.ReadByte() == символ
     ;
 
     @Глобально
-    статический метод ПрочитатьUIntИзHex(поток: Stream, hexDigits: System::Int32): System::UInt64
+    статический метод ПрочитатьUIntИзHex(поток: Stream, hexDigits: Int32): UInt64
         пер буфер = Байты.Выделить(hexDigits)
         пер прочитано = поток.Read(буфер, 0, hexDigits)
         если прочитано != hexDigits
             выбросить новый ОшибкаФормата("ошибка формата")
         ;
-        пер result: System::UInt64 = 0
-        для i = 0 по hexDigits - 1
-            пер digit = System::Convert.ToUInt64(Утилиты.ЦифраИзHex(буфер[i]))
-            result = System::Convert.ToUInt64(result * 16 + digit)
+        пер result: UInt64 = 0
+        пер i: Int32 = 0
+        пока i < hexDigits
+            пер digit = Convert.ToUInt64(Утилиты.ЦифраИзHex(буфер[i]))
+            result = result * 16 + digit
+            i = i + 1
         ;
         возврат result
     ;
 
     @Глобально
-    статический метод ЗаписатьUIntКакHex(поток: Stream, value: System::UInt64, hexDigits: System::Int32): ничто
+    статический метод ЗаписатьUIntКакHex(поток: Stream, value: UInt64, hexDigits: Int32): ничто
         пер буфер = Байты.Выделить(hexDigits)
-        пер v: System::UInt64 = value
-        для i = 0 по hexDigits - 1
-            пер idx = hexDigits - i - 1
-            пер digit = System::Convert.ToInt32(v % 16)
-            буфер[idx] = Утилиты.ВHexЦифру(digit)
-            v = System::Convert.ToUInt64(System::Decimal.Truncate(System::Convert.ToDecimal(v) / 16))
+        пер v: UInt64 = value
+        пер i: Int32 = hexDigits
+        пока i > 0
+            i = i - 1
+            пер digit = Convert.ToInt32(v % 16)
+            буфер[i] = Утилиты.ВHexЦифру(digit)
+            v = v / 16
         ;
         если v != 0
             выбросить новый ОшибкаФормата("ошибка формата")
@@ -180,21 +189,21 @@
     ;
 
     @Глобально
-    статический метод ВHexЦифру(value: System::Int32): System::Byte
+    статический метод ВHexЦифру(value: Int32): Byte
         если value > 15
             выбросить новый ОшибкаФормата("ошибка формата")
         ;
         если value >= 10
-            возврат System::Convert.ToByte(97 + value - 10)
+            возврат Convert.ToByte(97 + value - 10)
         ;
         если value >= 0
-            возврат System::Convert.ToByte(48 + value)
+            возврат Convert.ToByte(48 + value)
         ;
         выбросить новый ОшибкаФормата("ошибка формата")
     ;
 
     @Глобально
-    статический метод ЦифраИзHex(hexByte: System::Byte): System::Int32
+    статический метод ЦифраИзHex(hexByte: Byte): Int32
         если hexByte >= 48 и hexByte <= 57
             возврат hexByte - 48
         ;

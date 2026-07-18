@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Pes: V8Unpack",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/V8Unpack/bin/Debug/net10.0/V8Unpack.dll",
+      "cwd": "${workspaceFolder}",
+      "args":[
+        "-listfiles",
+        "c:\\temp\\temp\\1180.cf"
+      ],
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    }
+  ]
+}
