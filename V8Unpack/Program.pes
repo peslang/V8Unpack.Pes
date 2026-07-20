@@ -11,19 +11,19 @@
 ;
 
 метод ЧислоАргументов(): Int32
-    пер values = Environment.GetCommandLineArgs()
-    возврат values.Length
+    пер аргументы = Environment.GetCommandLineArgs()
+    возврат аргументы.Length
 ;
 
 метод Аргумент(индекс: Int32): Строка
-    пер values = Environment.GetCommandLineArgs()
-    возврат values[индекс]
+    пер аргументы = Environment.GetCommandLineArgs()
+    возврат аргументы[индекс]
 ;
 
-метод Прогресс(progress: Int32): Int32
-    пер chars = ["|", "/", "-", "\\", "|", "/", "-", "\\"]
-    Console.Write("\b" + chars[progress])
-    возврат (progress + 1) % chars.Count
+метод Прогресс(фаза: Int32): Int32
+    пер символы = ["|", "/", "-", "\\", "|", "/", "-", "\\"]
+    Console.Write("\b" + символы[фаза])
+    возврат (фаза + 1) % символы.Count
 ;
 
 метод КомандаРазбор(): ничто
@@ -31,11 +31,11 @@
         ПоказатьСправку()
         возврат
     ;
-    пер filename = Аргумент(2)
-    пер destDir = Аргумент(3)
-    пер cf = Контейнер.ИзФайла(filename)
-    Контейнер.РазобратьРекурсивно(cf, destDir)
-    cf.Освободить()
+    пер имяФайла = Аргумент(2)
+    пер каталогНазначения = Аргумент(3)
+    пер контейнер = Контейнер.ИзФайла(имяФайла)
+    Контейнер.РазобратьРекурсивно(контейнер, каталогНазначения)
+    контейнер.Освободить()
     Console.WriteLine("\bDone.")
 ;
 
@@ -44,20 +44,18 @@
         ПоказатьСправку()
         возврат
     ;
-    пер filename = Аргумент(2)
-    пер destDir = Аргумент(3)
-    Directory.CreateDirectory(destDir)
-    пер cf = Контейнер.ИзФайла(filename)
-    пер files = cf.Файлы()
-    пер i: Int32 = 0
-    пока i < files.Count
-        пер file = files[i]
-        пер dstPath = Path.Combine(destDir, file.Имя)
-        пер fileStream = cf.ОткрытьПоток(file.СмещениеДанных, Истина)
-        Контейнер.ЗаписатьПотокВФайл(fileStream, dstPath)
-        i = i + 1
+    пер имяФайла = Аргумент(2)
+    пер каталогНазначения = Аргумент(3)
+    Directory.CreateDirectory(каталогНазначения)
+    пер контейнер = Контейнер.ИзФайла(имяФайла)
+    пер файлы = контейнер.Файлы()
+    для индекс = 0 по файлы.Count - 1
+        пер файл = файлы[индекс]
+        пер путьНазначения = Path.Combine(каталогНазначения, файл.Имя)
+        пер потокФайла = контейнер.ОткрытьПоток(файл.СмещениеДанных, Истина)
+        Контейнер.ЗаписатьПотокВФайл(потокФайла, путьНазначения)
     ;
-    cf.Освободить()
+    контейнер.Освободить()
     Console.WriteLine("Done.")
 ;
 
@@ -66,9 +64,9 @@
         ПоказатьСправку()
         возврат
     ;
-    пер srcDir = Аргумент(2)
-    пер filename = Аргумент(3)
-    Контейнер.СоздатьИзКаталога(srcDir, filename, ТипАдресаКонтейнера.Авто, Истина)
+    пер каталогИсточник = Аргумент(2)
+    пер имяФайла = Аргумент(3)
+    Контейнер.СоздатьИзКаталога(каталогИсточник, имяФайла, ТипАдресаКонтейнера.Авто, Истина)
     Console.WriteLine("Done.")
 ;
 
@@ -85,43 +83,41 @@
         ПоказатьСправку()
         возврат
     ;
-    пер filename = Аргумент(2)
-    пер cf = Контейнер.ИзФайла(filename)
-    пер files = cf.Файлы()
-    пер i: Int32 = 0
-    пока i < files.Count
-        пер entry = files[i]
-        пер fileSize: Int64 = 0
-        пер packedSign = "-"
-        пер dirSign = "-"
-        пер blockReader = cf.ОткрытьЧитательБлока(entry.СмещениеДанных)
-        fileSize = blockReader.Length
-        если blockReader.ЭтоКонтейнер()
-            dirSign = "d"
+    пер имяФайла = Аргумент(2)
+    пер контейнер = Контейнер.ИзФайла(имяФайла)
+    пер файлы = контейнер.Файлы()
+    для индекс = 0 по файлы.Count - 1
+        пер запись = файлы[индекс]
+        пер размерФайла: Int64 = 0
+        пер знакУпаковки = "-"
+        пер знакКаталога = "-"
+        пер читательБлока = контейнер.ОткрытьЧитательБлока(запись.СмещениеДанных)
+        размерФайла = читательБлока.Length
+        если читательБлока.ЭтоКонтейнер()
+            знакКаталога = "d"
         ;
-        если blockReader.Упакован()
-            packedSign = "z"
+        если читательБлока.Упакован()
+            знакУпаковки = "z"
         ;
-        пер namePresentation = entry.Имя.PadRight(40)
-        пер sizePresentation = String.Format("{0,10}", fileSize)
+        пер представлениеИмени = запись.Имя.PadRight(40)
+        пер представлениеРазмера = String.Format("{0,10}", размерФайла)
         Console.WriteLine(
-            dirSign + " " + ФорматДатыСписка(entry.ДатаИзменения) + " " + ФорматВремениСписка(entry.ДатаИзменения) + "    " + namePresentation + "   " + sizePresentation + " " + packedSign + " ")
-        i = i + 1
+            знакКаталога + " " + ФорматДатыСписка(запись.ДатаИзменения) + " " + ФорматВремениСписка(запись.ДатаИзменения) + "    " + представлениеИмени + "   " + представлениеРазмера + " " + знакУпаковки + " ")
     ;
-    cf.Освободить()
+    контейнер.Освободить()
 ;
 
 если ЧислоАргументов() < 2
     ПоказатьСправку()
 иначе
-    пер command = Аргумент(1)
-    если String.Equals(command, "-parse", StringComparison.InvariantCultureIgnoreCase)
+    пер команда = Аргумент(1)
+    если String.Equals(команда, "-parse", StringComparison.InvariantCultureIgnoreCase)
         КомандаРазбор()
-    иначе если String.Equals(command, "-unpack", StringComparison.InvariantCultureIgnoreCase)
+    иначе если String.Equals(команда, "-unpack", StringComparison.InvariantCultureIgnoreCase)
         КомандаРаспаковать()
-    иначе если String.Equals(command, "-build", StringComparison.InvariantCultureIgnoreCase)
+    иначе если String.Equals(команда, "-build", StringComparison.InvariantCultureIgnoreCase)
         КомандаСобрать()
-    иначе если String.Equals(command, "-listfiles", StringComparison.InvariantCultureIgnoreCase)
+    иначе если String.Equals(команда, "-listfiles", StringComparison.InvariantCultureIgnoreCase)
         КомандаСписокФайлов()
     иначе
         ПоказатьСправку()

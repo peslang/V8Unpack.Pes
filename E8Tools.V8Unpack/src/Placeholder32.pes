@@ -12,19 +12,19 @@
 
     @Локально
     статический метод ЗагрузитьДанные(): Байты
-        пер asm = Assembly.GetExecutingAssembly()
-        пер dir = Path.GetDirectoryName(asm.Location)
-        если String.IsNullOrEmpty(dir)
-            dir = "."
+        пер сборка = Assembly.GetExecutingAssembly()
+        пер каталог = Path.GetDirectoryName(сборка.Location)
+        если String.IsNullOrEmpty(каталог)
+            каталог = "."
         ;
-        пер путь = Path.Combine(dir, "Placeholder32.bytes")
+        пер путь = Path.Combine(каталог, "Placeholder32.bytes")
         если File.Exists(путь)
             возврат File.ReadAllBytes(путь)
         ;
-        пер dev = Path.Combine(Path.Combine(Path.Combine(dir, ".."), ".."), "..")
-        пер devPath = Path.Combine(Path.Combine(dev, "src"), "Placeholder32.bytes")
-        если File.Exists(devPath)
-            возврат File.ReadAllBytes(devPath)
+        пер кореньРазработки = Path.Combine(Path.Combine(Path.Combine(каталог, ".."), ".."), "..")
+        пер путьРазработки = Path.Combine(Path.Combine(кореньРазработки, "src"), "Placeholder32.bytes")
+        если File.Exists(путьРазработки)
+            возврат File.ReadAllBytes(путьРазработки)
         ;
         выбросить новый IOException("Не найден Placeholder32.bytes")
     ;
